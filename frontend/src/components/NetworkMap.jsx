@@ -91,7 +91,7 @@ export default function NetworkMap({
           </linearGradient>
         </defs>
 
-        {allRoads.map((road) => {
+        {allRoads.map((road, index) => {
           const source = nodeMap[road.from];
           const target = nodeMap[road.to];
           if (!source || !target) {
@@ -102,7 +102,7 @@ export default function NetworkMap({
           const roadId = normalizeRoadId(road.from, road.to);
           const isHighlighted = highlightedRoadIds.includes(roadId);
           return (
-            <g key={roadId}>
+            <g key={`${roadId}-${index}`}>
               <line
                 x1={start.x}
                 y1={start.y}
