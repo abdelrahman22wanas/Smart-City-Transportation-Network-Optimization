@@ -2,7 +2,7 @@
 > CSE112 - Design and Analysis of Algorithms | Alamein International University
 
 ## Live Demo
-- Frontend: https://your-vercel-or-github-pages-url
+- Frontend: [https://your-vercel-or-github-pages-url](https://smart-city-transportation-network-o.vercel.app)
 - Backend: https://your-render-backend-url
 
 ## Project Overview
