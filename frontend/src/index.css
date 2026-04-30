@@ -193,6 +193,8 @@ button {
   background: rgba(6, 12, 22, 0.86);
   border-right: 1px solid rgba(148, 163, 184, 0.12);
   backdrop-filter: blur(18px);
+  width: 300px;
+  transition: width 240ms ease, padding 240ms ease;
 }
 
 .sidebar.collapsed {
@@ -228,6 +230,16 @@ button {
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-wrap: nowrap;
+}
+
+.sidebar-brand > :not(.sidebar-skyline-wrap) {
+  flex: 0 0 auto;
+}
+
+.sidebar-toggle {
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 .icon-halo {
   position: absolute;
