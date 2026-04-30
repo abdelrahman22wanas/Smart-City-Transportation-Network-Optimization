@@ -171,6 +171,7 @@ export default function App() {
       <div className="app-shell">
         <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
         <main className="content-shell">
+          {activeTab !== 'Network Map' && (
           <section className="hero-panel">
             <GlowCard className="hero-copy-card">
               <div>
@@ -197,8 +198,9 @@ export default function App() {
               </GlowCard>
             </div>
           </section>
+          )}
 
-          <section className="main-stage" style={{ ...(activeTab === 'Network Map' && { padding: 0, overflow: 'hidden' }) }}>
+          <section className="main-stage" style={{ ...(activeTab === 'Network Map' && { padding: 0, overflow: 'hidden', flex: 1 }) }}>
             {contentByTab[activeTab]}
           </section>
         </main>
