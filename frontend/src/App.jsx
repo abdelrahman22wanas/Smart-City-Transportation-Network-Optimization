@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import apiClient from './api/client';
 import './index.css';
 import Sidebar from './components/Sidebar';
+import Network3D from './components/Network3D';
 import NetworkMap from './components/NetworkMap';
 import MSTDesigner from './components/MSTDesigner';
 import RoutePlanner from './components/RoutePlanner';
@@ -118,7 +119,7 @@ export default function App() {
   }
 
   const contentByTab = {
-    'Network Map': <NetworkMap />,
+    'Network Map': <Network3D />,
     'MST Designer': <MSTDesigner mstResult={mstResult} onRunMst={runMst} />,
     'Route Planner': <RoutePlanner routeResult={routeResult} onRunRoute={runRoute} />,
     'Algorithm Race': <AlgorithmRace compareResult={compareResult} onRunCompare={runCompare} />,
@@ -197,7 +198,9 @@ export default function App() {
             </div>
           </section>
 
-          <section className="main-stage">{contentByTab[activeTab]}</section>
+          <section className="main-stage" style={{ ...(activeTab === 'Network Map' && { padding: 0, overflow: 'hidden' }) }}>
+            {contentByTab[activeTab]}
+          </section>
         </main>
       </div>
     </>
