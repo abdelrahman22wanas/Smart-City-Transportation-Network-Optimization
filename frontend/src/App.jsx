@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import apiClient from './api/client';
 import './index.css';
 import Sidebar from './components/Sidebar';
@@ -30,6 +30,17 @@ export default function App() {
   const [mlTrainResult, setMlTrainResult] = useState(null);
   const [mlPredictResult, setMlPredictResult] = useState(null);
   const [dashboardMetrics] = useState(defaultDashboardMetrics);
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 28 }, (_, index) => ({
+        id: index,
+        left: `${((index * 37) % 100) + 0.3}%`,
+        delay: `${(index % 9) * -1.4}s`,
+        duration: `${10 + (index % 7) * 2}s`,
+        size: `${2 + (index % 4)}px`,
+      })),
+    [],
+  );
 
   useEffect(() => {
     void apiClient.get('/health').catch(() => null);
@@ -138,36 +149,54 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell">
-      <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
-      <main className="content-shell">
-        <section className="hero-panel">
-          <div>
-            <p className="eyebrow">CSE112 · Design and Analysis of Algorithms</p>
-            <h1>Smart City Transportation Network Optimization</h1>
-            <p>
-              A dark, data-rich Cairo dashboard for graph algorithms, dynamic programming,
-              greedy optimization, and traffic prediction.
-            </p>
-          </div>
-          <div className="hero-stats">
+    <>
+      <div className="particle-field" aria-hidden="true">
+        {particles.map((particle) => (
+          <span
+            key={particle.id}
+            className="particle-dot"
+            style={{
+              left: particle.left,
+              animationDelay: particle.delay,
+              animationDuration: particle.duration,
+              width: particle.size,
+              height: particle.size,
+            }}
+          />
+        ))}
+      </div>
+      <div className="vignette-overlay" aria-hidden="true" />
+      <div className="app-shell">
+        <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
+        <main className="content-shell">
+          <section className="hero-panel">
             <div>
-              <span>Nodes</span>
-              <strong>25</strong>
+              <p className="eyebrow">CSE112 · Design and Analysis of Algorithms</p>
+              <h1>Smart City Transportation Network Optimization</h1>
+              <p>
+                A dark, data-rich Cairo dashboard for graph algorithms, dynamic programming,
+                greedy optimization, and traffic prediction.
+              </p>
             </div>
-            <div>
-              <span>Roads</span>
-              <strong>43</strong>
+            <div className="hero-stats">
+              <div>
+                <span>Nodes</span>
+                <strong>25</strong>
+              </div>
+              <div>
+                <span>Roads</span>
+                <strong>43</strong>
+              </div>
+              <div>
+                <span>API Status</span>
+                <strong>Ready</strong>
+              </div>
             </div>
-            <div>
-              <span>API Status</span>
-              <strong>Ready</strong>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="main-stage">{contentByTab[activeTab]}</section>
-      </main>
-    </div>
+          <section className="main-stage">{contentByTab[activeTab]}</section>
+        </main>
+      </div>
+    </>
   );
 }
