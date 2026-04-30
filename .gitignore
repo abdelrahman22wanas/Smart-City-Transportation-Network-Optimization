@@ -3,12 +3,22 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.so
+*.o
+*.a
+*.egg
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
 .venv/
 venv/
 env/
+build/
+dist/
+.pip-cache/
 
 # Backend build artifacts
 backend/**/__pycache__/
@@ -20,6 +30,13 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+*.tsbuildinfo
+.parcel-cache/
+.next/
+out/
+.nuxt/
+dist-ssr/
+*.local
 
 # Environment files
 .env
@@ -31,15 +48,46 @@ backend/.env.*
 
 # OS / editor
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
 Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.vim/
+*.swp
+*.swo
+*~
+.netrwhist
 
 # Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+pip-log.txt
+pip-delete-this-directory.txt
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary & Cache files
+.cache/
+.tmp/
+*.tmp
+tmp/
+temp/
+*.cache
+*.bak
+*.swp
+.DS_Store
 
 # Generated project docs
 TECHNICAL_REPORT_OUTLINE.md
