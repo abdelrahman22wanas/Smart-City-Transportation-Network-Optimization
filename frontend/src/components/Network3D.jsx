@@ -3,6 +3,8 @@ import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls, Stars, Grid } from '@react-three/drei';
 import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
+import { CAIRO_NODES } from '../data/cairoNetwork';
+import Node from './Node';
 
 function Lighting() {
   return (
@@ -84,6 +86,21 @@ function PostProcessingEffects() {
   );
 }
 
+function Scene() {
+  return (
+    <>
+      <Lighting />
+      <Environment />
+      <PostProcessingEffects />
+
+      {/* Render all nodes */}
+      {CAIRO_NODES.map((node) => (
+        <Node key={node.id} node={node} />
+      ))}
+    </>
+  );
+}
+
 export default function Network3D() {
   return (
     <div className="network-3d-container" style={{ width: '100%', height: '100%' }}>
@@ -103,11 +120,10 @@ export default function Network3D() {
           far={5000}
         />
 
-        {/* Lighting */}
-        <Lighting />
-
-        {/* Environment (stars, grid) */}
-        <Environment />
+        {/* Main scene with all nodes and effects */}
+        <Suspense fallback={null}>
+          <Scene />
+        </Suspense>
 
         {/* Orbit controls for user interaction */}
         <OrbitControls
@@ -119,11 +135,6 @@ export default function Network3D() {
           autoRotate
           autoRotateSpeed={0.3}
         />
-
-        {/* Post-processing effects */}
-        <PostProcessingEffects />
-
-        {/* Placeholder: ready for nodes and edges in next steps */}
       </Canvas>
     </div>
   );
