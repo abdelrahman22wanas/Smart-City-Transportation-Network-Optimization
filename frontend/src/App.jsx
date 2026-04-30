@@ -10,6 +10,7 @@ import PublicTransit from './components/PublicTransit';
 import TrafficSignals from './components/TrafficSignals';
 import MLPrediction from './components/MLPrediction';
 import PerformanceDashboard from './components/PerformanceDashboard';
+import GlowCard from './components/GlowCard';
 
 const defaultDashboardMetrics = {
   totalNetworkKm: '—',
@@ -170,27 +171,29 @@ export default function App() {
         <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
         <main className="content-shell">
           <section className="hero-panel">
-            <div>
+            <GlowCard className="hero-copy-card">
+              <div>
               <p className="eyebrow">CSE112 · Design and Analysis of Algorithms</p>
               <h1>Smart City Transportation Network Optimization</h1>
               <p>
                 A dark, data-rich Cairo dashboard for graph algorithms, dynamic programming,
                 greedy optimization, and traffic prediction.
               </p>
-            </div>
+              </div>
+            </GlowCard>
             <div className="hero-stats">
-              <div>
+              <GlowCard className="hero-stat-card">
                 <span>Nodes</span>
                 <strong>25</strong>
-              </div>
-              <div>
+              </GlowCard>
+              <GlowCard className="hero-stat-card">
                 <span>Roads</span>
                 <strong>43</strong>
-              </div>
-              <div>
+              </GlowCard>
+              <GlowCard className="hero-stat-card">
                 <span>API Status</span>
                 <strong>Ready</strong>
-              </div>
+              </GlowCard>
             </div>
           </section>
 
