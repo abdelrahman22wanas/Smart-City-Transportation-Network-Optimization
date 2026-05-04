@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import NetworkMap from './NetworkMap';
+import RoadNetworkMap from './RoadNetworkMap';
 
 export default function MSTDesigner({ mstResult, onRunMst }) {
   const [algorithm, setAlgorithm] = useState('kruskal');
@@ -9,6 +9,16 @@ export default function MSTDesigner({ mstResult, onRunMst }) {
     () => mstResult?.result?.mst_edges?.map((edge) => edge.road_id) || [],
     [mstResult],
   );
+
+  const highlightedNodeIds = useMemo(() => {
+    if (!mstResult?.result?.mst_edges?.length) return [];
+    const nodeIds = new Set();
+    mstResult.result.mst_edges.forEach((edge) => {
+      if (edge.from) nodeIds.add(edge.from);
+      if (edge.to) nodeIds.add(edge.to);
+    });
+    return [...nodeIds];
+  }, [mstResult]);
 
   return (
     <div className="tab-shell">
@@ -44,9 +54,15 @@ export default function MSTDesigner({ mstResult, onRunMst }) {
       </div>
 
       <div className="tab-grid two-column">
-        <NetworkMap highlightedRoadIds={highlightedRoadIds} />
+        <div className="map-panel">
+          <RoadNetworkMap 
+            highlightedRoadIds={highlightedRoadIds}
+            highlightedNodeIds={highlightedNodeIds}
+            showBaseNetwork={true}
+          />
+        </div>
         <div className="insight-panel">
-          <h3>Selected Output</h3>
+          <h3>MST Output</h3>
           <div className="metric-grid">
             <div className="metric-card">
               <span>Total Cost</span>
@@ -67,12 +83,18 @@ export default function MSTDesigner({ mstResult, onRunMst }) {
           </div>
 
           <div className="detail-list">
+            <h4>MST Edges</h4>
             {(mstResult?.result?.mst_edges || []).map((edge, index) => (
               <div key={`${edge.road_id}-${index}`} className="detail-item">
                 <span>{index + 1}. {edge.road_id}</span>
                 <small>{edge.from} → {edge.to} | weight {edge.adjusted_weight}</small>
               </div>
             ))}
+            {(!mstResult?.result?.mst_edges || mstResult.result.mst_edges.length === 0) && (
+              <div className="empty-state">
+                Click "Run MST" to compute the minimum spanning tree and see the network visualization.
+              </div>
+            )}
           </div>
         </div>
       </div>

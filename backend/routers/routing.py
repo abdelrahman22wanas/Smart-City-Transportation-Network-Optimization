@@ -34,19 +34,30 @@ def get_route(
 ) -> RouteResultModel:
     """Return a route using Dijkstra, time-dependent Dijkstra, or A*."""
 
+    # Convert string IDs to integers if they're numeric
+    try:
+        from_node = int(from_id)
+    except ValueError:
+        from_node = from_id
+    
+    try:
+        to_node = int(to_id)
+    except ValueError:
+        to_node = to_id
+
     start_time = perf_counter()
     if mode == "emergency":
-        payload = a_star_path(from_id, to_id)
+        payload = a_star_path(from_node, to_node)
         result = dict(payload["result"])
         result["mode"] = mode
         result["travel_time_note"] = "A* used for emergency routing"
     elif time_of_day:
-        payload = time_dependent_shortest_path(from_id, to_id, time_of_day)
+        payload = time_dependent_shortest_path(from_node, to_node, time_of_day)
         result = dict(payload["result"])
         result["mode"] = mode
         result["estimated_travel_time_hours"] = round(float(result["total_weight"] or 0.0) / 40.0, 4) if result["reachable"] else None
     else:
-        payload = dijkstra_shortest_path(from_id, to_id)
+        payload = dijkstra_shortest_path(from_node, to_node)
         result = dict(payload["result"])
         result["mode"] = mode
         result["estimated_travel_time_hours"] = round(float(result["total_distance_km"] or 0.0) / 40.0, 4) if result["reachable"] else None

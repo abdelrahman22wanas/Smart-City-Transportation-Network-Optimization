@@ -1,157 +1,321 @@
-import React from 'react';
-import { allNodes, existingRoads, facilities, neighborhoods, normalizeRoadId, potentialNewRoads } from '../data/cairoData';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { neighborhoods, facilities, existingRoads, potentialNewRoads, nodeById } from '../data/cairoData';
+import apiClient from '../api/client';
 
-const TYPE_COLORS = {
-  Residential: '#4f8cff',
-  Business: '#ff9f43',
-  Medical: '#ff5d73',
-  Government: '#b46bff',
-  Airport: '#ffd166',
-  Mixed: '#2dd4bf',
-  Industrial: '#94a3b8',
-  'Transit Hub': '#f97316',
-  Education: '#22c55e',
-  Tourism: '#eab308',
-  Sports: '#14b8a6',
-  Commercial: '#fb7185',
+const NODE_COLORS = {
+  Residential: '#3b82f6',
+  Business: '#f97316',
+  Mixed: '#8b5cf6',
+  Industrial: '#64748b',
+  Government: '#a855f7',
+  Medical: '#ef4444',
+  Airport: '#eab308',
+  'Transit Hub': '#06b6d4',
+  Education: '#10b981',
+  Tourism: '#ec4899',
+  Sports: '#f59e0b',
+  Commercial: '#14b8a6',
 };
 
-const VIEWBOX = { width: 1000, height: 700 };
+export default function NetworkMap() {
+  const [hoveredNode, setHoveredNode] = useState(null);
+  const [selectedNodes, setSelectedNodes] = useState([]);
+  const [showPotentialRoads, setShowPotentialRoads] = useState(false);
+  const [routeData, setRouteData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const svgRef = useRef(null);
+  const fetchTimeoutRef = useRef(null);
 
-const allRoads = [
-  ...existingRoads.map((road) => ({ ...road, isPotential: false })),
-  ...potentialNewRoads.map((road) => ({ ...road, isPotential: true })),
-];
-
-const nodeMap = Object.fromEntries(allNodes.map((node) => [node.id, node]));
-
-function project(node) {
-  const minX = 30.9;
-  const maxX = 31.85;
-  const minY = 29.84;
-  const maxY = 30.13;
-  const x = ((node.x - minX) / (maxX - minX)) * 900 + 50;
-  const y = VIEWBOX.height - (((node.y - minY) / (maxY - minY)) * 620 + 40);
-  return { x, y };
-}
-
-function roadStroke(road, highlightedRoadIds) {
-  const roadId = normalizeRoadId(road.from, road.to);
-  if (highlightedRoadIds.includes(roadId)) {
-    return '#7dd3fc';
-  }
-  return road.isPotential ? 'rgba(255,255,255,0.22)' : 'rgba(148,163,184,0.55)';
-}
-
-function nodeRadius(node) {
-  if (typeof node.population !== 'number') {
-    return 12;
-  }
-  return Math.max(12, Math.min(32, 10 + node.population / 25000));
-}
-
-function connectedRoadLabels(nodeId) {
-  const labels = [];
-  for (const road of allRoads) {
-    if (road.from === nodeId || road.to === nodeId) {
-      labels.push(normalizeRoadId(road.from, road.to));
+  const allNodes = useMemo(() => [...neighborhoods, ...facilities], []);
+  
+  const { minX, maxX, minY, maxY, viewMinX, viewMaxX, viewMinY, viewMaxY } = useMemo(() => {
+    const minX = Math.min(...allNodes.map(n => n.x));
+    const maxX = Math.max(...allNodes.map(n => n.x));
+    const minY = Math.min(...allNodes.map(n => n.y));
+    const maxY = Math.max(...allNodes.map(n => n.y));
+    
+    const padding = 0.05;
+    const xRange = maxX - minX;
+    const yRange = maxY - minY;
+    
+    return {
+      minX, maxX, minY, maxY,
+      viewMinX: minX - xRange * padding,
+      viewMaxX: maxX + xRange * padding,
+      viewMinY: minY - yRange * padding,
+      viewMaxY: maxY + yRange * padding
+    };
+  }, [allNodes]);
+  
+  const width = 1200;
+  const height = 800;
+  
+  const scaleX = useCallback((x) => ((x - viewMinX) / (viewMaxX - viewMinX)) * width, [viewMinX, viewMaxX, width]);
+  const scaleY = useCallback((y) => height - ((y - viewMinY) / (viewMaxY - viewMinY)) * height, [viewMinY, viewMaxY, height]);
+  
+  const getNodeSize = useCallback((node) => {
+    if (node.population) {
+      return Math.sqrt(node.population / 10000) + 4;
     }
-  }
-  return labels;
-}
+    return 8;
+  }, []);
 
-export default function NetworkMap({
-  highlightedRoadIds = [],
-  selectedNodes = [],
-  onNodeClick,
-  onNodeHover,
-}) {
+  const handleNodeClick = useCallback((node) => {
+    if (selectedNodes.length === 0) {
+      setSelectedNodes([node.id]);
+      setRouteData(null);
+    } else if (selectedNodes.length === 1) {
+      if (selectedNodes[0] !== node.id) {
+        setSelectedNodes([...selectedNodes, node.id]);
+      } else {
+        setSelectedNodes([]);
+        setRouteData(null);
+      }
+    } else {
+      setSelectedNodes([node.id]);
+      setRouteData(null);
+    }
+  }, [selectedNodes]);
+
+  useEffect(() => {
+    if (selectedNodes.length === 2) {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      
+      setLoading(true);
+      fetchTimeoutRef.current = setTimeout(() => {
+        apiClient.get('/api/route', {
+          params: { 
+            from: selectedNodes[0], 
+            to: selectedNodes[1],
+            time: 'morning',
+            mode: 'standard'
+          }
+        })
+        .then(response => {
+          setRouteData(response.data);
+          setLoading(false);
+        })
+        .catch(() => {
+          setLoading(false);
+        });
+      }, 300);
+    }
+    
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, [selectedNodes]);
+
+  const getConnectedRoads = useCallback((nodeId) => {
+    return existingRoads.filter(r => r.from === nodeId || r.to === nodeId);
+  }, []);
+
+  const pathSet = useMemo(() => {
+    if (!routeData?.result?.path) return new Set();
+    const path = routeData.result.path;
+    const edges = new Set();
+    for (let i = 0; i < path.length - 1; i++) {
+      edges.add(`${path[i]}-${path[i + 1]}`);
+      edges.add(`${path[i + 1]}-${path[i]}`);
+    }
+    return edges;
+  }, [routeData]);
+
   return (
-    <div className="network-map-panel">
-      <div className="network-map-header">
-        <div>
-          <h2>Network Map</h2>
-          <p>Interactive graph of Cairo neighborhoods, facilities, and transport links.</p>
-        </div>
-        <div className="network-map-legend">
-          {Object.entries(TYPE_COLORS).slice(0, 5).map(([label, color]) => (
-            <span key={label} className="legend-item">
-              <span className="legend-dot" style={{ background: color }} />
-              {label}
-            </span>
+    <div style={{ width: '100%', height: '100vh', background: '#0a0a0f', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, background: 'rgba(15, 15, 25, 0.9)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+        <h3 style={{ color: '#fff', margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>Network Map</h3>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#a0a0b0', fontSize: '13px', cursor: 'pointer' }}>
+          <input 
+            type="checkbox" 
+            checked={showPotentialRoads} 
+            onChange={(e) => setShowPotentialRoads(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          Show Potential New Roads
+        </label>
+        <div style={{ marginTop: '16px', fontSize: '12px', color: '#808090' }}>
+          <div style={{ marginBottom: '8px', fontWeight: 600, color: '#a0a0b0' }}>Node Types:</div>
+          {Object.entries(NODE_COLORS).map(([type, color]) => (
+            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: color }} />
+              <span>{type}</span>
+            </div>
           ))}
+        </div>
+        <div style={{ marginTop: '12px', fontSize: '11px', color: '#606070', borderTop: '1px solid rgba(99, 102, 241, 0.2)', paddingTop: '8px' }}>
+          Click two nodes to see route
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} className="network-map-svg" role="img" aria-label="Cairo transportation network map">
+      {hoveredNode && (
+        <div style={{
+          position: 'absolute',
+          top: 20,
+          right: 20,
+          zIndex: 10,
+          background: 'rgba(15, 15, 25, 0.95)',
+          padding: '16px',
+          borderRadius: '8px',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          minWidth: '250px',
+          maxWidth: '350px'
+        }}>
+          <h4 style={{ color: '#fff', margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600 }}>{hoveredNode.name}</h4>
+          <div style={{ fontSize: '13px', color: '#a0a0b0', lineHeight: '1.6' }}>
+            <div><strong>Type:</strong> {hoveredNode.type}</div>
+            {hoveredNode.population && <div><strong>Population:</strong> {hoveredNode.population.toLocaleString()}</div>}
+            {hoveredNode.capacity && <div><strong>Capacity:</strong> {hoveredNode.capacity.toLocaleString()}</div>}
+            <div><strong>ID:</strong> {hoveredNode.id}</div>
+            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(99, 102, 241, 0.2)' }}>
+              <strong>Connected Roads:</strong> {getConnectedRoads(hoveredNode.id).length}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedNodes.length === 2 && (
+        <div style={{
+          position: 'absolute',
+          bottom: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10,
+          background: 'rgba(15, 15, 25, 0.95)',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+        }}>
+          <div style={{ color: '#fff', fontSize: '14px' }}>
+            Route: <strong>{nodeById[selectedNodes[0]]?.name}</strong> → <strong>{nodeById[selectedNodes[1]]?.name}</strong>
+          </div>
+          {loading && (
+            <div style={{ color: '#808090', fontSize: '12px', marginTop: '4px' }}>
+              Loading route...
+            </div>
+          )}
+          {routeData && routeData.result && (
+            <div style={{ color: '#22d3ee', fontSize: '12px', marginTop: '4px' }}>
+              Distance: {routeData.result.total_distance?.toFixed(1)} km | 
+              Time: {routeData.result.total_time?.toFixed(0)} min | 
+              Nodes: {routeData.result.path?.length || 0}
+            </div>
+          )}
+        </div>
+      )}
+
+      <svg
+        ref={svgRef}
+        width={width}
+        height={height}
+        style={{ display: 'block', margin: '0 auto' }}
+      >
         <defs>
-          <linearGradient id="roadGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.9" />
-          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
 
-        {allRoads.map((road, index) => {
-          const source = nodeMap[road.from];
-          const target = nodeMap[road.to];
-          if (!source || !target) {
-            return null;
-          }
-          const start = project(source);
-          const end = project(target);
-          const roadId = normalizeRoadId(road.from, road.to);
-          const isHighlighted = highlightedRoadIds.includes(roadId);
+        {existingRoads.map((road, idx) => {
+          const fromNode = nodeById[road.from];
+          const toNode = nodeById[road.to];
+          if (!fromNode || !toNode) return null;
+          
+          const isInPath = pathSet.has(`${road.from}-${road.to}`);
+          
           return (
-            <g key={`${roadId}-${index}`}>
-              <line
-                x1={start.x}
-                y1={start.y}
-                x2={end.x}
-                y2={end.y}
-                stroke={isHighlighted ? 'url(#roadGlow)' : roadStroke(road, highlightedRoadIds)}
-                strokeWidth={isHighlighted ? 4 : 2}
-                strokeDasharray={road.isPotential ? '8 8' : '0'}
-                opacity={isHighlighted ? 1 : 0.9}
-              />
-            </g>
+            <line
+              key={`existing-${idx}`}
+              x1={scaleX(fromNode.x)}
+              y1={scaleY(fromNode.y)}
+              x2={scaleX(toNode.x)}
+              y2={scaleY(toNode.y)}
+              stroke={isInPath ? '#22d3ee' : '#4a5568'}
+              strokeWidth={isInPath ? 3 : 1.5}
+              opacity={isInPath ? 1 : 0.6}
+            />
+          );
+        })}
+
+        {showPotentialRoads && potentialNewRoads.map((road, idx) => {
+          const fromNode = nodeById[road.from];
+          const toNode = nodeById[road.to];
+          if (!fromNode || !toNode) return null;
+          
+          return (
+            <line
+              key={`potential-${idx}`}
+              x1={scaleX(fromNode.x)}
+              y1={scaleY(fromNode.y)}
+              x2={scaleX(toNode.x)}
+              y2={scaleY(toNode.y)}
+              stroke="#f59e0b"
+              strokeWidth={1}
+              strokeDasharray="4,4"
+              opacity={0.4}
+            />
           );
         })}
 
         {allNodes.map((node) => {
-          const point = project(node);
-          const color = TYPE_COLORS[node.type] || '#94a3b8';
-          const selected = selectedNodes.includes(node.id);
-          const connections = connectedRoadLabels(node.id);
+          const cx = scaleX(node.x);
+          const cy = scaleY(node.y);
+          const radius = getNodeSize(node);
+          const color = NODE_COLORS[node.type] || '#6366f1';
+          const isSelected = selectedNodes.includes(node.id);
+          const isHovered = hoveredNode?.id === node.id;
+          
           return (
-            <g
-              key={node.id}
-              transform={`translate(${point.x}, ${point.y})`}
-              onClick={() => onNodeClick?.(node)}
-              onMouseEnter={() => onNodeHover?.(node, connections)}
-              style={{ cursor: 'pointer' }}
-            >
+            <g key={node.id}>
+              {(isSelected || isHovered) && (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius + 6}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={2}
+                  opacity={0.5}
+                />
+              )}
               <circle
-                r={nodeRadius(node)}
+                cx={cx}
+                cy={cy}
+                r={radius}
                 fill={color}
-                stroke={selected ? '#ffffff' : 'rgba(15,23,42,0.95)'}
-                strokeWidth={selected ? 4 : 2}
+                stroke="#fff"
+                strokeWidth={1.5}
+                opacity={isSelected || isHovered ? 1 : 0.9}
+                style={{ cursor: 'pointer', filter: isHovered ? 'url(#glow)' : 'none' }}
+                onMouseEnter={() => setHoveredNode(node)}
+                onMouseLeave={() => setHoveredNode(null)}
+                onClick={() => handleNodeClick(node)}
               />
-              <text
-                y={nodeRadius(node) + 16}
-                textAnchor="middle"
-                className="network-node-label"
-              >
-                {node.name}
-              </text>
+              {(isSelected || isHovered) && (
+                <text
+                  x={cx}
+                  y={cy - radius - 6}
+                  textAnchor="middle"
+                  fill="#e0e0e0"
+                  fontSize="10"
+                  fontWeight="500"
+                  style={{ pointerEvents: 'none', userSelect: 'none' }}
+                >
+                  {node.name}
+                </text>
+              )}
             </g>
           );
         })}
       </svg>
-
-      <div className="network-map-note">
-        <span>Solid edges = existing roads</span>
-        <span>Dashed edges = potential new roads</span>
-      </div>
     </div>
   );
 }

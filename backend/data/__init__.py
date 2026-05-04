@@ -8,20 +8,30 @@ This package contains the hardcoded Cairo network dataset including:
 
 from backend.data.cairo_data import (
     NODES,
+    NODE_BY_ID,
     EXISTING_ROADS,
-    NEW_ROADS,
-    HOSPITALS,
-    CONGESTION_PATTERNS,
+    POTENTIAL_NEW_ROADS,
+    METRO_LINES,
+    BUS_ROUTES,
+    TRAFFIC_PATTERNS,
+    TRAFFIC_LIGHT_INTERSECTIONS,
+    PEAK_HOUR_PATTERNS,
     NodeId,
+    RoadId,
     normalize_road_id,
 )
 
 __all__ = [
     "NODES",
+    "NODE_BY_ID",
     "EXISTING_ROADS",
-    "NEW_ROADS",
-    "HOSPITALS",
-    "CONGESTION_PATTERNS",
+    "POTENTIAL_NEW_ROADS",
+    "METRO_LINES",
+    "BUS_ROUTES",
+    "TRAFFIC_PATTERNS",
+    "TRAFFIC_LIGHT_INTERSECTIONS",
+    "PEAK_HOUR_PATTERNS",
     "NodeId",
+    "RoadId",
     "normalize_road_id",
 ]

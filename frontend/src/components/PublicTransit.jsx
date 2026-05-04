@@ -1,8 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { normalizeRoadId } from '../data/cairoData';
+import RoadNetworkMap from './RoadNetworkMap';
 
 export default function PublicTransit({ busResult, maintenanceResult, onRunBus, onRunMaintenance }) {
   const [busCount, setBusCount] = useState(214);
   const [budget, setBudget] = useState(500);
+  const [activeView, setActiveView] = useState('bus');
+
+  const busRouteEdges = useMemo(() => {
+    if (!busResult?.result?.selected_routes) return [];
+    const edges = new Set();
+    busResult.result.selected_routes.forEach((route) => {
+      const stops = route.stops || [];
+      for (let i = 0; i < stops.length - 1; i++) {
+        const edgeId = normalizeRoadId(stops[i], stops[i + 1]);
+        edges.add(edgeId);
+      }
+    });
+    return [...edges];
+  }, [busResult]);
+
+  const busRouteNodes = useMemo(() => {
+    if (!busResult?.result?.selected_routes) return [];
+    const nodes = new Set();
+    busResult.result.selected_routes.forEach((route) => {
+      const stops = route.stops || [];
+      stops.forEach((nodeId) => nodes.add(nodeId));
+    });
+    return [...nodes];
+  }, [busResult]);
+
+  const maintenanceEdges = useMemo(() => {
+    if (!maintenanceResult?.result?.selected_roads) return [];
+    return maintenanceResult.result.selected_roads.map((road) => 
+      normalizeRoadId(road.from, road.to)
+    );
+  }, [maintenanceResult]);
+
+  const maintenanceNodes = useMemo(() => {
+    if (!maintenanceResult?.result?.selected_roads) return [];
+    const nodes = new Set();
+    maintenanceResult.result.selected_roads.forEach((road) => {
+      if (road.from) nodes.add(road.from);
+      if (road.to) nodes.add(road.to);
+    });
+    return [...nodes];
+  }, [maintenanceResult]);
+
+  const highlightedRoadIds = activeView === 'bus' ? busRouteEdges : maintenanceEdges;
+  const highlightedNodeIds = activeView === 'bus' ? busRouteNodes : maintenanceNodes;
+  const showBaseNetwork = true;
 
   return (
     <div className="tab-shell">
@@ -30,42 +77,107 @@ export default function PublicTransit({ busResult, maintenanceResult, onRunBus, 
       </div>
 
       <div className="tab-grid two-column">
-        <div className="insight-panel large-panel">
-          <h3>Bus Scheduling</h3>
-          <div className="metric-grid">
-            <div className="metric-card"><span>Served Passengers</span><strong>{busResult?.result?.served_passengers ?? '—'}</strong></div>
-            <div className="metric-card"><span>Used Buses</span><strong>{busResult?.result?.used_buses ?? '—'}</strong></div>
-            <div className="metric-card"><span>Remaining</span><strong>{busResult?.result?.remaining_buses ?? '—'}</strong></div>
-            <div className="metric-card"><span>Routes Chosen</span><strong>{busResult?.result?.selected_routes?.length ?? '—'}</strong></div>
-          </div>
-          <div className="detail-list">
-            {(busResult?.result?.selected_routes || []).map((route) => (
-              <div key={route.id} className="detail-item">
-                <span>{route.id}</span>
-                <small>{route.buses_assigned} buses | {route.daily_passengers} passengers</small>
-              </div>
-            ))}
-          </div>
-          <div className="chart-placeholder">DP table visualisation hook</div>
+        <div className="map-panel">
+          <RoadNetworkMap 
+            highlightedRoadIds={highlightedRoadIds}
+            highlightedNodeIds={highlightedNodeIds}
+            showBaseNetwork={showBaseNetwork}
+          />
         </div>
 
-        <div className="insight-panel large-panel">
-          <h3>Road Maintenance</h3>
-          <div className="metric-grid">
-            <div className="metric-card"><span>Improvement</span><strong>{maintenanceResult?.result?.total_condition_improvement ?? '—'}</strong></div>
-            <div className="metric-card"><span>Used Budget</span><strong>{maintenanceResult?.result?.used_budget_million_egp ?? '—'}</strong></div>
-            <div className="metric-card"><span>Remaining</span><strong>{maintenanceResult?.result?.remaining_budget_million_egp ?? '—'}</strong></div>
-            <div className="metric-card"><span>Roads Chosen</span><strong>{maintenanceResult?.result?.selected_roads?.length ?? '—'}</strong></div>
+        <div className="insight-panel">
+          <div className="view-toggle">
+            <button 
+              type="button"
+              className={`toggle-btn ${activeView === 'bus' ? 'active' : ''}`}
+              onClick={() => setActiveView('bus')}
+            >
+              Bus Routes
+            </button>
+            <button 
+              type="button"
+              className={`toggle-btn ${activeView === 'maintenance' ? 'active' : ''}`}
+              onClick={() => setActiveView('maintenance')}
+            >
+              Road Maintenance
+            </button>
           </div>
-          <div className="detail-list">
-            {(maintenanceResult?.result?.selected_roads || []).map((road) => (
-              <div key={`${road.from}-${road.to}`} className="detail-item">
-                <span>{road.from} → {road.to}</span>
-                <small>cost {road.estimated_repair_cost_million_egp}M | score {road.condition_improvement_score}</small>
+
+          {activeView === 'bus' && (
+            <>
+              <h3>Bus Scheduling</h3>
+              <div className="metric-grid">
+                <div className="metric-card">
+                  <span>Served Passengers</span>
+                  <strong>{busResult?.result?.served_passengers ?? '—'}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Used Buses</span>
+                  <strong>{busResult?.result?.used_buses ?? '—'}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Remaining</span>
+                  <strong>{busResult?.result?.remaining_buses ?? '—'}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Routes Chosen</span>
+                  <strong>{busResult?.result?.selected_routes?.length ?? '—'}</strong>
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="chart-placeholder">Road repair table visualisation hook</div>
+              <div className="detail-list">
+                <h4>Selected Routes</h4>
+                {(busResult?.result?.selected_routes || []).map((route) => (
+                  <div key={route.id} className="detail-item">
+                    <span>{route.id}</span>
+                    <small>{route.buses_assigned} buses | {route.daily_passengers} passengers</small>
+                  </div>
+                ))}
+                {(!busResult?.result?.selected_routes || busResult.result.selected_routes.length === 0) && (
+                  <div className="empty-state">
+                    Click "Solve Bus Scheduling" to optimize bus allocation.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeView === 'maintenance' && (
+            <>
+              <h3>Road Maintenance</h3>
+              <div className="metric-grid">
+                <div className="metric-card">
+                  <span>Improvement</span>
+                  <strong>{maintenanceResult?.result?.total_condition_improvement ?? '—'}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Used Budget</span>
+                  <strong>{maintenanceResult?.result?.used_budget_million_egp ?? '—'}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Remaining</span>
+                  <strong>{maintenanceResult?.result?.remaining_budget_million_egp ?? '—'}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Roads Chosen</span>
+                  <strong>{maintenanceResult?.result?.selected_roads?.length ?? '—'}</strong>
+                </div>
+              </div>
+              <div className="detail-list">
+                <h4>Selected Roads</h4>
+                {(maintenanceResult?.result?.selected_roads || []).map((road, index) => (
+                  <div key={`${road.from}-${road.to}-${index}`} className="detail-item">
+                    <span>{normalizeRoadId(road.from, road.to)}</span>
+                    <small>cost {road.estimated_repair_cost_million_egp}M | score {road.condition_improvement_score}</small>
+                  </div>
+                ))}
+                {(!maintenanceResult?.result?.selected_roads || maintenanceResult.result.selected_roads.length === 0) && (
+                  <div className="empty-state">
+                    Click "Solve Maintenance" to optimize road repairs.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
