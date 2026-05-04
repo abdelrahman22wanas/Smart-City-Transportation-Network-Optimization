@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { allNodes } from '../data/cairoData';
+import { allNodes, normalizeRoadId } from '../data/cairoData';
+import RoadNetworkMap from './RoadNetworkMap';
 
 export default function RoutePlanner({ routeResult, onRunRoute }) {
   const [source, setSource] = useState(allNodes[0]?.id ?? 1);
@@ -8,7 +9,45 @@ export default function RoutePlanner({ routeResult, onRunRoute }) {
   const [mode, setMode] = useState('standard');
 
   const nodeOptions = useMemo(() => allNodes, []);
-  const highlightedRoadIds = routeResult?.result?.edges?.map((edge) => edge.road_id) || [];
+  
+  const highlightedRoadIds = useMemo(() => {
+    if (routeResult?.result?.edges?.length > 0) {
+      return routeResult.result.edges.map((edge) => edge.road_id).filter(Boolean);
+    }
+    if (routeResult?.result?.path?.length > 1) {
+      const path = routeResult.result.path;
+      const roadIds = [];
+      for (let i = 0; i < path.length - 1; i++) {
+        const from = path[i];
+        const to = path[i + 1];
+        roadIds.push(normalizeRoadId(from, to));
+      }
+      return roadIds;
+    }
+    return [];
+  }, [routeResult]);
+
+  const primaryPath = useMemo(
+    () => routeResult?.result?.path?.map(String) || [],
+    [routeResult],
+  );
+
+  const highlightedNodeIds = useMemo(() => {
+    const ids = [];
+    if (source) ids.push(source);
+    if (destination) ids.push(destination);
+    return ids;
+  }, [source, destination]);
+
+  const handleSourceChange = (value) => {
+    const numValue = Number(value);
+    setSource(isNaN(numValue) ? value : numValue);
+  };
+
+  const handleDestinationChange = (value) => {
+    const numValue = Number(value);
+    setDestination(isNaN(numValue) ? value : numValue);
+  };
 
   return (
     <div className="tab-shell">
@@ -20,7 +59,7 @@ export default function RoutePlanner({ routeResult, onRunRoute }) {
         <div className="control-grid">
           <label className="control-chip">
             <span>Source</span>
-            <select value={source} onChange={(event) => setSource(event.target.value)}>
+            <select value={source} onChange={(event) => handleSourceChange(event.target.value)}>
               {nodeOptions.map((node) => (
                 <option key={node.id} value={node.id}>
                   {node.name}
@@ -30,7 +69,7 @@ export default function RoutePlanner({ routeResult, onRunRoute }) {
           </label>
           <label className="control-chip">
             <span>Destination</span>
-            <select value={destination} onChange={(event) => setDestination(event.target.value)}>
+            <select value={destination} onChange={(event) => handleDestinationChange(event.target.value)}>
               {nodeOptions.map((node) => (
                 <option key={node.id} value={node.id}>
                   {node.name}
@@ -65,38 +104,59 @@ export default function RoutePlanner({ routeResult, onRunRoute }) {
       </div>
 
       <div className="tab-grid two-column">
-        <div className="insight-panel large-panel">
-          <h3>Route Output</h3>
-          <div className="metric-grid">
-            <div className="metric-card"><span>Algorithm</span><strong>{routeResult?.algorithm ?? '—'}</strong></div>
-            <div className="metric-card"><span>Distance</span><strong>{routeResult?.result?.total_distance_km ?? routeResult?.result?.total_weight ?? '—'}</strong></div>
-            <div className="metric-card"><span>Reachable</span><strong>{routeResult?.result?.reachable ? 'Yes' : '—'}</strong></div>
-            <div className="metric-card"><span>Execution</span><strong>{routeResult?.execution_time_ms ?? '—'} ms</strong></div>
-          </div>
-          <div className="detail-list">
-            {(routeResult?.result?.path || []).map((nodeId, index) => (
-              <div key={`${nodeId}-${index}`} className="detail-item">
-                <span>{index + 1}. {nodeId}</span>
-              </div>
-            ))}
-          </div>
-          <div className="chart-placeholder">
-            Congestion overlay and step-by-step path animation hook here.
-          </div>
+        <div className="map-panel">
+          <RoadNetworkMap 
+            highlightedRoadIds={highlightedRoadIds}
+            highlightedNodeIds={highlightedNodeIds}
+            primaryPath={primaryPath}
+            showBaseNetwork={true}
+          />
         </div>
 
-        <div className="insight-panel large-panel">
-          <h3>Path Edges</h3>
+        <div className="insight-panel">
+          <h3>Route Output</h3>
+          <div className="metric-grid">
+            <div className="metric-card">
+              <span>Algorithm</span>
+              <strong>{routeResult?.algorithm ?? '—'}</strong>
+            </div>
+            <div className="metric-card">
+              <span>Distance</span>
+              <strong>{routeResult?.result?.total_distance_km ?? routeResult?.result?.total_weight ?? '—'}</strong>
+            </div>
+            <div className="metric-card">
+              <span>Reachable</span>
+              <strong>{routeResult?.result?.reachable ? 'Yes' : '—'}</strong>
+            </div>
+            <div className="metric-card">
+              <span>Execution</span>
+              <strong>{routeResult?.execution_time_ms ?? '—'} ms</strong>
+            </div>
+          </div>
+
           <div className="detail-list">
-            {(routeResult?.result?.edges || []).map((edge, index) => (
-              <div key={`${edge.road_id}-${index}`} className="detail-item">
-                <span>{edge.road_id}</span>
-                <small>{edge.from} → {edge.to} | {edge.segment_distance_km ?? edge.segment_weight ?? '—'}</small>
+            <h4>Path Nodes</h4>
+            {(routeResult?.result?.path || []).map((nodeId, index) => (
+              <div key={`path-${nodeId}-${index}`} className="detail-item">
+                <span className="path-step">{index + 1}</span>
+                <span>{nodeId}</span>
               </div>
             ))}
+            {(!routeResult?.result?.path || routeResult.result.path.length === 0) && (
+              <div className="empty-state">
+                Click "Find Route" to compute the shortest path and see the network visualization.
+              </div>
+            )}
           </div>
-          <div className="chart-placeholder">
-            Road highlight: {highlightedRoadIds.length ? highlightedRoadIds.join(', ') : 'none'}
+
+          <div className="detail-list">
+            <h4>Path Edges</h4>
+            {(routeResult?.result?.edges || []).map((edge, index) => (
+              <div key={`edge-${edge.road_id}-${index}`} className="detail-item">
+                <span>{edge.road_id}</span>
+                <small>{edge.from} → {edge.to} | {edge.segment_distance_km ?? edge.segment_weight ?? '—'} km</small>
+              </div>
+            ))}
           </div>
         </div>
       </div>

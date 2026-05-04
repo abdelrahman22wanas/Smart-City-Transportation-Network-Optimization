@@ -9,15 +9,46 @@ import AlgorithmRace from './components/AlgorithmRace';
 import PublicTransit from './components/PublicTransit';
 import TrafficSignals from './components/TrafficSignals';
 import MLPrediction from './components/MLPrediction';
+import Infrastructure from './components/Infrastructure';
 import PerformanceDashboard from './components/PerformanceDashboard';
-import GlowCard from './components/GlowCard';
+import { allNodes, existingRoads, trafficPatterns } from './data/cairoData';
 
-const defaultDashboardMetrics = {
-  totalNetworkKm: '—',
-  avgCongestionRatio: '—',
-  busiestRoad: '—',
-  mostIsolatedNode: '—',
-};
+function computeDashboardMetrics() {
+  const totalNetworkKm = existingRoads.reduce((sum, r) => sum + r.distance_km, 0).toFixed(1);
+
+  // Busiest road by morning traffic
+  const busiestEntry = Object.entries(trafficPatterns).reduce((best, [id, p]) =>
+    p.morning > (best[1]?.morning ?? 0) ? [id, p] : best, ['', null]);
+  const busiestRoad = busiestEntry[0];
+
+  // Avg congestion ratio across all roads/times
+  const congestionValues = existingRoads.flatMap(r => {
+    const key = `${r.from}-${r.to}`;
+    const revKey = `${r.to}-${r.from}`;
+    const pattern = trafficPatterns[key] || trafficPatterns[revKey];
+    if (!pattern) return [];
+    return Object.values(pattern).map(flow => flow / r.capacity_veh_h);
+  });
+  const avgCongestion = congestionValues.length
+    ? (congestionValues.reduce((a, b) => a + b, 0) / congestionValues.length * 100).toFixed(1) + '%'
+    : '—';
+
+  // Most isolated node = fewest road connections
+  const degree = {};
+  allNodes.forEach(n => { degree[n.id] = 0; });
+  existingRoads.forEach(r => { degree[r.from] = (degree[r.from] || 0) + 1; degree[r.to] = (degree[r.to] || 0) + 1; });
+  const minId = Object.entries(degree).reduce((a, b) => b[1] < a[1] ? b : a)[0];
+  const minNode = allNodes.find(n => String(n.id) === String(minId));
+
+  return {
+    totalNetworkKm: `${totalNetworkKm} km`,
+    avgCongestionRatio: avgCongestion,
+    busiestRoad,
+    mostIsolatedNode: minNode?.name ?? minId,
+  };
+}
+
+const defaultDashboardMetrics = computeDashboardMetrics();
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Network Map');
@@ -117,37 +148,53 @@ export default function App() {
     setActiveTab('ML Prediction');
   }
 
-  const contentByTab = {
-    'Network Map': <NetworkMap />,
-    'MST Designer': <MSTDesigner mstResult={mstResult} onRunMst={runMst} />,
-    'Route Planner': <RoutePlanner routeResult={routeResult} onRunRoute={runRoute} />,
-    'Algorithm Race': <AlgorithmRace compareResult={compareResult} onRunCompare={runCompare} />,
-    'Public Transit': (
-      <PublicTransit
-        busResult={busResult}
-        maintenanceResult={maintenanceResult}
-        onRunBus={runBusScheduling}
-        onRunMaintenance={runMaintenance}
-      />
-    ),
-    'Traffic Signals': (
-      <TrafficSignals
-        signalsResult={signalsResult}
-        emergencyResult={emergencyResult}
-        onRunSignals={runSignals}
-        onRunEmergency={runEmergency}
-      />
-    ),
-    'ML Prediction': (
-      <MLPrediction
-        mlTrainResult={mlTrainResult}
-        mlPredictResult={mlPredictResult}
-        onTrain={runTrain}
-        onPredict={runPredict}
-      />
-    ),
-    'Performance Dashboard': <PerformanceDashboard metrics={dashboardMetrics} />,
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'Network Map':
+        return <NetworkMap />;
+      case 'MST Designer':
+        return <MSTDesigner mstResult={mstResult} onRunMst={runMst} />;
+      case 'Route Planner':
+        return <RoutePlanner routeResult={routeResult} onRunRoute={runRoute} />;
+      case 'Algorithm Race':
+        return <AlgorithmRace compareResult={compareResult} onRunCompare={runCompare} />;
+      case 'Public Transit':
+        return (
+          <PublicTransit
+            busResult={busResult}
+            maintenanceResult={maintenanceResult}
+            onRunBus={runBusScheduling}
+            onRunMaintenance={runMaintenance}
+          />
+        );
+      case 'Traffic Signals':
+        return (
+          <TrafficSignals
+            signalsResult={signalsResult}
+            emergencyResult={emergencyResult}
+            onRunSignals={runSignals}
+            onRunEmergency={runEmergency}
+          />
+        );
+      case 'ML Prediction':
+        return (
+          <MLPrediction
+            mlTrainResult={mlTrainResult}
+            mlPredictResult={mlPredictResult}
+            onTrain={runTrain}
+            onPredict={runPredict}
+          />
+        );
+      case 'Infrastructure':
+        return <Infrastructure />;
+      case 'Performance Dashboard':
+        return <PerformanceDashboard metrics={dashboardMetrics} />;
+      default:
+        return <NetworkMap />;
+    }
   };
+
+  const isMapTab = activeTab === 'Network Map';
 
   return (
     <>
@@ -170,38 +217,39 @@ export default function App() {
       <div className="app-shell">
         <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
         <main className="content-shell">
-          {activeTab !== 'Network Map' && (
-          <section className="hero-panel">
-            <GlowCard className="hero-copy-card">
-              <div>
-              <p className="eyebrow">CSE112 · Design and Analysis of Algorithms</p>
-              <h1>Smart City Transportation Network Optimization</h1>
-              <p>
-                A dark, data-rich Cairo dashboard for graph algorithms, dynamic programming,
-                greedy optimization, and traffic prediction.
-              </p>
-              </div>
-            </GlowCard>
-            <div className="hero-stats">
-              <GlowCard className="hero-stat-card">
-                <span>Nodes</span>
-                <strong>25</strong>
-              </GlowCard>
-              <GlowCard className="hero-stat-card">
-                <span>Roads</span>
-                <strong>43</strong>
-              </GlowCard>
-              <GlowCard className="hero-stat-card">
-                <span>API Status</span>
-                <strong>Ready</strong>
-              </GlowCard>
+          {isMapTab ? (
+            <div className="map-fullscreen">
+              <NetworkMap />
             </div>
-          </section>
+          ) : (
+            <section className="main-stage scrollable">
+              <div className="page-header">
+                <div>
+                  <p className="eyebrow">CSE112 · Design and Analysis of Algorithms</p>
+                  <h1>Smart City Transportation Network Optimization</h1>
+                  <p>
+                    A dark, data-rich Cairo dashboard for graph algorithms, dynamic programming,
+                    greedy optimization, and traffic prediction.
+                  </p>
+                </div>
+                <div className="hero-stats">
+                  <div className="hero-stat-card">
+                    <span>Nodes</span>
+                    <strong>25</strong>
+                  </div>
+                  <div className="hero-stat-card">
+                    <span>Roads</span>
+                    <strong>43</strong>
+                  </div>
+                  <div className="hero-stat-card">
+                    <span>API Status</span>
+                    <strong>Ready</strong>
+                  </div>
+                </div>
+              </div>
+              {renderContent()}
+            </section>
           )}
-
-          <section className="main-stage">
-            {contentByTab[activeTab]}
-          </section>
         </main>
       </div>
     </>

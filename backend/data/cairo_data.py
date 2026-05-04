@@ -75,6 +75,9 @@ EXISTING_ROADS: List[Dict[str, Any]] = [
     {"from": "F2", "to": 3, "distance_km": 2.5, "capacity_veh_h": 2000, "condition": 7},
     {"from": "F7", "to": 15, "distance_km": 8.3, "capacity_veh_h": 2800, "condition": 8},
     {"from": "F8", "to": 4, "distance_km": 6.1, "capacity_veh_h": 3000, "condition": 9},
+    {"from": "F9", "to": 3, "distance_km": 1.2, "capacity_veh_h": 2000, "condition": 10},
+    {"from": "F9", "to": 10, "distance_km": 0.9, "capacity_veh_h": 2000, "condition": 10},
+    {"from": "F10", "to": 1, "distance_km": 1.1, "capacity_veh_h": 2000, "condition": 10},
 ]
 
 POTENTIAL_NEW_ROADS: List[Dict[str, Any]] = [
@@ -98,15 +101,23 @@ POTENTIAL_NEW_ROADS: List[Dict[str, Any]] = [
 TRAFFIC_PATTERNS: Dict[RoadId, Dict[str, int]] = {
     "1-3": {"morning": 2800, "afternoon": 1500, "evening": 2600, "night": 800},
     "1-8": {"morning": 2200, "afternoon": 1200, "evening": 2100, "night": 600},
+    "1-12": {"morning": 2600, "afternoon": 1400, "evening": 2400, "night": 550},
+    "1-F10": {"morning": 1200, "afternoon": 1000, "evening": 1100, "night": 800},
     "2-3": {"morning": 2700, "afternoon": 1400, "evening": 2500, "night": 700},
+    "2-4": {"morning": 3600, "afternoon": 1800, "evening": 3300, "night": 750},
     "2-5": {"morning": 3000, "afternoon": 1600, "evening": 2800, "night": 650},
+    "2-F1": {"morning": 3000, "afternoon": 2000, "evening": 2800, "night": 1100},
     "3-5": {"morning": 3200, "afternoon": 1700, "evening": 3100, "night": 800},
     "3-6": {"morning": 1800, "afternoon": 1400, "evening": 1900, "night": 500},
     "3-9": {"morning": 2400, "afternoon": 1300, "evening": 2200, "night": 550},
     "3-10": {"morning": 2300, "afternoon": 1200, "evening": 2100, "night": 500},
-    "4-2": {"morning": 3600, "afternoon": 1800, "evening": 3300, "night": 750},
+    "3-F2": {"morning": 1900, "afternoon": 1600, "evening": 1800, "night": 900},
+    "3-F9": {"morning": 1500, "afternoon": 1200, "evening": 1400, "night": 1000},
+    "4-8": {"morning": 3200, "afternoon": 1700, "evening": 3000, "night": 700},
     "4-14": {"morning": 2800, "afternoon": 1600, "evening": 2600, "night": 600},
+    "4-F8": {"morning": 2800, "afternoon": 1600, "evening": 2600, "night": 600},
     "5-11": {"morning": 2900, "afternoon": 1500, "evening": 2700, "night": 650},
+    "5-F1": {"morning": 3300, "afternoon": 2200, "evening": 3100, "night": 1200},
     "6-9": {"morning": 1700, "afternoon": 1300, "evening": 1800, "night": 450},
     "7-8": {"morning": 3200, "afternoon": 1700, "evening": 3000, "night": 700},
     "7-15": {"morning": 2800, "afternoon": 1500, "evening": 2600, "night": 600},
@@ -114,16 +125,20 @@ TRAFFIC_PATTERNS: Dict[RoadId, Dict[str, int]] = {
     "8-12": {"morning": 2400, "afternoon": 1300, "evening": 2200, "night": 500},
     "9-10": {"morning": 1800, "afternoon": 1200, "evening": 1700, "night": 400},
     "10-11": {"morning": 2200, "afternoon": 1300, "evening": 2100, "night": 500},
+    "10-F9": {"morning": 1500, "afternoon": 1200, "evening": 1400, "night": 1000},
     "11-F2": {"morning": 2100, "afternoon": 1200, "evening": 2000, "night": 450},
-    "12-1": {"morning": 2600, "afternoon": 1400, "evening": 2400, "night": 550},
+    "13-14": {"morning": 3600, "afternoon": 1900, "evening": 3300, "night": 750},
     "13-4": {"morning": 3800, "afternoon": 2000, "evening": 3500, "night": 800},
-    "14-13": {"morning": 3600, "afternoon": 1900, "evening": 3300, "night": 750},
+    "15-F7": {"morning": 2600, "afternoon": 1500, "evening": 2400, "night": 550},
+    "F1-F2": {"morning": 3000, "afternoon": 2000, "evening": 2800, "night": 1100},
+    # String-based ordering corrections for numeric+numeric pairs
+    "10-3": {"morning": 2300, "afternoon": 1200, "evening": 2100, "night": 500},
+    "14-4": {"morning": 2800, "afternoon": 1600, "evening": 2600, "night": 600},
+    "11-5": {"morning": 2900, "afternoon": 1500, "evening": 2700, "night": 650},
     "15-7": {"morning": 2800, "afternoon": 1500, "evening": 2600, "night": 600},
-    "F1-5": {"morning": 3300, "afternoon": 2200, "evening": 3100, "night": 1200},
-    "F1-2": {"morning": 3000, "afternoon": 2000, "evening": 2800, "night": 1100},
-    "F2-3": {"morning": 1900, "afternoon": 1600, "evening": 1800, "night": 900},
-    "F7-15": {"morning": 2600, "afternoon": 1500, "evening": 2400, "night": 550},
-    "F8-4": {"morning": 2800, "afternoon": 1600, "evening": 2600, "night": 600},
+    "10-8": {"morning": 2000, "afternoon": 1100, "evening": 1900, "night": 450},
+    "12-8": {"morning": 2400, "afternoon": 1300, "evening": 2200, "night": 500},
+    "10-9": {"morning": 1800, "afternoon": 1200, "evening": 1700, "night": 400},
 }
 
 METRO_LINES: List[Dict[str, Any]] = [
@@ -205,8 +220,42 @@ def get_road(road_id: RoadId) -> Dict[str, Any]:
 
 def get_traffic_pattern(road_id: RoadId) -> Dict[str, int]:
     """Fetch traffic flow values for a road if present."""
+    return TRAFFIC_PATTERNS.get(road_id, {"morning": 0, "afternoon": 0, "evening": 0, "night": 0})
 
-    return TRAFFIC_PATTERNS[road_id]
+
+def get_bus_routes() -> List[Dict[str, Any]]:
+    """Fetch all bus routes."""
+    return BUS_ROUTES
+
+
+def get_transport_demand() -> List[Dict[str, Any]]:
+    """Fetch public transport demand data."""
+    return PUBLIC_TRANSPORT_DEMAND
+
+
+# Traffic Light Optimization Data (based on Cairo research papers)
+# Source: Various Cairo traffic light optimization studies
+
+TRAFFIC_LIGHT_INTERSECTIONS: List[Dict[str, Any]] = [
+    {"id": "INT-001", "name": "Mostafa El-Nahas", "lat": 30.058, "lng": 31.270, "green_time": 45, "cycle_time": 90, "phase_count": 4},
+    {"id": "INT-002", "name": "Ramses", "lat": 30.062, "lng": 31.258, "green_time": 60, "cycle_time": 120, "phase_count": 4},
+    {"id": "INT-003", "name": "Tahrir", "lat": 30.056, "lng": 31.232, "green_time": 55, "cycle_time": 110, "phase_count": 4},
+    {"id": "INT-004", "name": "Opera", "lat": 30.058, "lng": 31.225, "green_time": 50, "cycle_time": 100, "phase_count": 4},
+    {"id": "INT-005", "name": "Dokki", "lat": 30.045, "lng": 31.210, "green_time": 40, "cycle_time": 80, "phase_count": 3},
+    {"id": "INT-006", "name": "Maadi", "lat": 29.961, "lng": 31.255, "green_time": 35, "cycle_time": 70, "phase_count": 3},
+    {"id": "INT-007", "name": "Helwan", "lat": 29.858, "lng": 31.318, "green_time": 40, "cycle_time": 85, "phase_count": 3},
+    {"id": "INT-008", "name": "Nasr City", "lat": 30.052, "lng": 31.340, "green_time": 50, "cycle_time": 105, "phase_count": 4},
+    {"id": "INT-009", "name": "Heliopolis", "lat": 30.085, "lng": 31.320, "green_time": 48, "cycle_time": 95, "phase_count": 4},
+    {"id": "INT-010", "name": "New Cairo", "lat": 30.034, "lng": 31.360, "green_time": 52, "cycle_time": 100, "phase_count": 4},
+]
+
+# Peak hour traffic data (based on research)
+PEAK_HOUR_PATTERNS: Dict[str, Dict[str, int]] = {
+    "morning_peak": {"start": 7, "end": 9, "multiplier": 1.4},
+    "afternoon": {"start": 12, "end": 14, "multiplier": 1.0},
+    "evening_peak": {"start": 17, "end": 19, "multiplier": 1.5},
+    "night": {"start": 21, "end": 23, "multiplier": 0.6},
+}
 
 
 def all_node_ids() -> List[NodeId]:

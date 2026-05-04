@@ -46,8 +46,19 @@ def get_emergency_preemption(
 ) -> GreedyResultModel:
     """Return A*-guided emergency preemption details."""
 
+    # Convert string IDs to integers if they're numeric
+    try:
+        from_node = int(from_id)
+    except ValueError:
+        from_node = from_id
+    
+    try:
+        to_node = int(to_id)
+    except ValueError:
+        to_node = to_id
+
     start_time = perf_counter()
-    payload = emergency_preemption(from_id, to_id)
+    payload = emergency_preemption(from_node, to_node)
     execution_time_ms = (perf_counter() - start_time) * 1000.0
     return GreedyResultModel(
         algorithm=payload["algorithm"],
