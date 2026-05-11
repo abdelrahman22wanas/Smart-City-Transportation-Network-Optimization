@@ -5,12 +5,11 @@ passengers served. It uses a 0/1 knapsack formulation where each route is an ite
 with bus demand as weight and daily passengers as value.
 
 Time complexity: O(N * B) where N is the number of routes and B is the bus fleet size.
-Space complexity: O(N * B) for the DP table and reconstruction data.
+Space complexity: O(B) for the optimized rolling-array DP approach.
 """
 
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import Any, Dict, List, Tuple
 
 from backend.data.cairo_data import BUS_ROUTES, TOTAL_BUS_FLEET
@@ -22,46 +21,51 @@ def _route_items() -> List[Dict[str, Any]]:
     return sorted(BUS_ROUTES, key=lambda route: route["id"])
 
 
-@lru_cache(maxsize=32)
-def _solve_bus_dp(total_buses: int) -> Tuple[Tuple[Tuple[int, ...], ...], Tuple[int, ...]]:
-    """Compute the DP table and selected route indices."""
+def _solve_bus_dp(total_buses: int) -> Tuple[int, Tuple[int, ...]]:
+    """Compute the DP solution and selected route indices.
+    
+    Returns only the max value and selected indices, not the full DP table.
+    This reduces memory usage from O(N*B) to O(B) for the DP array.
+    """
 
     routes = _route_items()
     route_count = len(routes)
-    dp = [[0 for _ in range(total_buses + 1)] for _ in range(route_count + 1)]
-    keep = [[False for _ in range(total_buses + 1)] for _ in range(route_count + 1)]
-
-    for i in range(1, route_count + 1):
-        route = routes[i - 1]
+    
+    prev = [0] * (total_buses + 1)
+    selected_indices: List[int] = []
+    
+    keep_info: List[List[bool]] = []
+    for i in range(route_count):
+        route = routes[i]
         weight = int(route["buses_assigned"])
         value = int(route["daily_passengers"])
-        for buses in range(total_buses + 1):
-            without_route = dp[i - 1][buses]
-            with_route = -1
-            if weight <= buses:
-                with_route = value + dp[i - 1][buses - weight]
-            if with_route > without_route:
-                dp[i][buses] = with_route
-                keep[i][buses] = True
-            else:
-                dp[i][buses] = without_route
-
-    selected_indices: List[int] = []
+        keep_row = [False] * (total_buses + 1)
+        curr = prev[:]
+        
+        for buses in range(total_buses, weight - 1, -1):
+            with_route = value + prev[buses - weight]
+            if with_route > curr[buses]:
+                curr[buses] = with_route
+                keep_row[buses] = True
+        
+        keep_info.append(keep_row)
+        prev = curr
+    
     buses_remaining = total_buses
-    for i in range(route_count, 0, -1):
-        if keep[i][buses_remaining]:
-            selected_indices.append(i - 1)
-            buses_remaining -= int(routes[i - 1]["buses_assigned"])
+    for i in range(route_count - 1, -1, -1):
+        if keep_info[i][buses_remaining]:
+            selected_indices.append(i)
+            buses_remaining -= int(routes[i]["buses_assigned"])
     selected_indices.reverse()
 
-    return tuple(tuple(row) for row in dp), tuple(selected_indices)
+    return prev[total_buses], tuple(selected_indices)
 
 
 def solve_bus_scheduling(total_buses: int = TOTAL_BUS_FLEET) -> Dict[str, Any]:
     """Optimize bus allocation across routes using dynamic programming."""
 
     routes = _route_items()
-    dp_table, selected_indices = _solve_bus_dp(total_buses)
+    max_value, selected_indices = _solve_bus_dp(total_buses)
     selected_routes = [routes[index] for index in selected_indices]
     used_buses = sum(int(route["buses_assigned"]) for route in selected_routes)
     served_passengers = sum(int(route["daily_passengers"]) for route in selected_routes)
@@ -74,8 +78,6 @@ def solve_bus_scheduling(total_buses: int = TOTAL_BUS_FLEET) -> Dict[str, Any]:
             "remaining_buses": total_buses - used_buses,
             "served_passengers": served_passengers,
             "selected_routes": selected_routes,
-            "routes": routes,
-            "dp_table": [list(row) for row in dp_table],
         },
-        "complexity": {"time": "O(N * B)", "space": "O(N * B)"},
+        "complexity": {"time": "O(N * B)", "space": "O(B)"},
     }
