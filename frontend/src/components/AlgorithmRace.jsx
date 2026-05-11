@@ -3,6 +3,7 @@ import { allNodes, normalizeRoadId } from '../data/cairoData';
 import RoadNetworkMap from './RoadNetworkMap';
 
 export default function AlgorithmRace({ compareResult, onRunCompare }) {
+  // FIX: use index 0 for source and index 4 for destination so they are never the same
   const [source, setSource] = useState(allNodes[0]?.id ?? 1);
   const [destination, setDestination] = useState(allNodes[4]?.id ?? 5);
   const [activePath, setActivePath] = useState('both');
@@ -37,18 +38,30 @@ export default function AlgorithmRace({ compareResult, onRunCompare }) {
     return edges.map(edge => edge.road_id);
   }, [compareResult]);
 
-  const primaryPath = activePath === 'dijkstra' ? dijkstraPath : activePath === 'astar' ? astarPath : dijkstraPath;
+  const primaryPath = activePath === 'dijkstra'
+    ? dijkstraPath
+    : activePath === 'astar'
+      ? astarPath
+      : dijkstraPath;
+
   const secondaryPath = activePath === 'both' ? astarPath : [];
-  
-  const highlightedRoadIds = activePath === 'dijkstra' ? dijkstraEdges : activePath === 'astar' ? astarEdges : dijkstraEdges;
+
+  const highlightedRoadIds = activePath === 'dijkstra'
+    ? dijkstraEdges
+    : activePath === 'astar'
+      ? astarEdges
+      : dijkstraEdges;
+
   const secondaryPathIds = activePath === 'both' ? astarEdges : [];
 
   const highlightedNodeIds = useMemo(() => {
     const ids = [];
-    if (source) ids.push(source);
-    if (destination) ids.push(destination);
+    if (source !== undefined && source !== null) ids.push(source);
+    if (destination !== undefined && destination !== null) ids.push(destination);
     return ids;
   }, [source, destination]);
+
+  const sameNode = String(source) === String(destination);
 
   return (
     <div className="tab-shell">
@@ -60,7 +73,7 @@ export default function AlgorithmRace({ compareResult, onRunCompare }) {
         <div className="control-grid">
           <label className="control-chip">
             <span>Source</span>
-            <select value={source} onChange={(event) => handleSourceChange(event.target.value)}>
+            <select value={source} onChange={(e) => handleSourceChange(e.target.value)}>
               {allNodes.map((node) => (
                 <option key={node.id} value={node.id}>{node.name}</option>
               ))}
@@ -68,7 +81,7 @@ export default function AlgorithmRace({ compareResult, onRunCompare }) {
           </label>
           <label className="control-chip">
             <span>Destination</span>
-            <select value={destination} onChange={(event) => handleDestinationChange(event.target.value)}>
+            <select value={destination} onChange={(e) => handleDestinationChange(e.target.value)}>
               {allNodes.map((node) => (
                 <option key={node.id} value={node.id}>{node.name}</option>
               ))}
@@ -78,40 +91,47 @@ export default function AlgorithmRace({ compareResult, onRunCompare }) {
             type="button"
             className="primary-button"
             onClick={() => onRunCompare?.({ source, destination })}
+            disabled={sameNode}
+            title={sameNode ? 'Source and destination must be different' : ''}
           >
             Run Race
           </button>
         </div>
+        {sameNode && (
+          <p style={{ color: '#FF6B35', fontSize: 13, marginTop: 4 }}>
+            ⚠ Source and destination are the same node — please select different locations.
+          </p>
+        )}
       </div>
 
       <div className="tab-grid two-column">
         <div className="map-panel">
-          <RoadNetworkMap 
+          <RoadNetworkMap
             highlightedRoadIds={highlightedRoadIds}
             highlightedNodeIds={highlightedNodeIds}
             primaryPath={primaryPath}
-            secondaryPath={secondaryPath}
+            secondaryPath={secondaryPathIds}
             showBaseNetwork={true}
           />
         </div>
 
         <div className="race-panels">
           <div className="path-toggle">
-            <button 
+            <button
               type="button"
               className={`toggle-btn ${activePath === 'both' ? 'active' : ''}`}
               onClick={() => setActivePath('both')}
             >
               Both
             </button>
-            <button 
+            <button
               type="button"
               className={`toggle-btn dijkstra ${activePath === 'dijkstra' ? 'active' : ''}`}
               onClick={() => setActivePath('dijkstra')}
             >
               Dijkstra
             </button>
-            <button 
+            <button
               type="button"
               className={`toggle-btn astar ${activePath === 'astar' ? 'active' : ''}`}
               onClick={() => setActivePath('astar')}
@@ -123,14 +143,26 @@ export default function AlgorithmRace({ compareResult, onRunCompare }) {
           <div className="insight-panel">
             <h3>Dijkstra</h3>
             <div className="metric-grid">
-              <div className="metric-card"><span>Visited</span><strong>{compareResult?.result?.dijkstra?.visited_nodes?.length ?? '—'}</strong></div>
-              <div className="metric-card"><span>Time</span><strong>{compareResult?.result?.dijkstra?.execution_time_ms ?? '—'} ms</strong></div>
-              <div className="metric-card"><span>Length</span><strong>{compareResult?.result?.dijkstra?.path_length ?? '—'}</strong></div>
-              <div className="metric-card"><span>Distance</span><strong>{compareResult?.result?.dijkstra?.total_distance_km ?? '—'}</strong></div>
+              <div className="metric-card">
+                <span>Visited</span>
+                <strong>{compareResult?.result?.dijkstra?.visited_nodes?.length ?? '—'}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Time</span>
+                <strong>{compareResult?.result?.dijkstra?.execution_time_ms ?? '—'} ms</strong>
+              </div>
+              <div className="metric-card">
+                <span>Length</span>
+                <strong>{compareResult?.result?.dijkstra?.path_length ?? '—'}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Distance</span>
+                <strong>{compareResult?.result?.dijkstra?.total_distance_km ?? '—'}</strong>
+              </div>
             </div>
             <div className="detail-list">
               <h4>Path</h4>
-              {(dijkstraPath).map((nodeId, index) => (
+              {dijkstraPath.map((nodeId, index) => (
                 <div key={`d-${nodeId}-${index}`} className="detail-item dijkstra">
                   <span className="path-step">{index + 1}</span>
                   <span>{nodeId}</span>
@@ -145,14 +177,26 @@ export default function AlgorithmRace({ compareResult, onRunCompare }) {
           <div className="insight-panel">
             <h3>A*</h3>
             <div className="metric-grid">
-              <div className="metric-card"><span>Visited</span><strong>{compareResult?.result?.astar?.visited_nodes?.length ?? '—'}</strong></div>
-              <div className="metric-card"><span>Time</span><strong>{compareResult?.result?.astar?.execution_time_ms ?? '—'} ms</strong></div>
-              <div className="metric-card"><span>Length</span><strong>{compareResult?.result?.astar?.path_length ?? '—'}</strong></div>
-              <div className="metric-card"><span>Distance</span><strong>{compareResult?.result?.astar?.total_distance_km ?? '—'}</strong></div>
+              <div className="metric-card">
+                <span>Visited</span>
+                <strong>{compareResult?.result?.astar?.visited_nodes?.length ?? '—'}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Time</span>
+                <strong>{compareResult?.result?.astar?.execution_time_ms ?? '—'} ms</strong>
+              </div>
+              <div className="metric-card">
+                <span>Length</span>
+                <strong>{compareResult?.result?.astar?.path_length ?? '—'}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Distance</span>
+                <strong>{compareResult?.result?.astar?.total_distance_km ?? '—'}</strong>
+              </div>
             </div>
             <div className="detail-list">
               <h4>Path</h4>
-              {(astarPath).map((nodeId, index) => (
+              {astarPath.map((nodeId, index) => (
                 <div key={`a-${nodeId}-${index}`} className="detail-item astar">
                   <span className="path-step">{index + 1}</span>
                   <span>{nodeId}</span>
