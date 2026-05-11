@@ -75,7 +75,7 @@ npm run dev
 - The ML model predicts road-level traffic flow from historical temporal patterns.
 
 ## Screenshots
-Add screenshots of the dashboard tabs here after running the frontend.
+![image](https://i.ibb.co/3mWXQ94Z/Screenshot-2026-05-12-004631.png)
 
 ## ML Traffic Prediction
 The traffic model is trained on the road-level temporal flow data for morning, afternoon, evening, and night. It predicts vehicle flow from a road ID and time of day, then returns the predicted value alongside the actual value and model metrics.
