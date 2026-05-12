@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { neighborhoods, facilities, existingRoads, normalizeRoadId } from '../data/cairoData';
+import { neighborhoods, facilities, existingRoads, potentialNewRoads, normalizeRoadId } from '../data/cairoData';
 
 const minX = 30.94;
 const maxX = 31.80;
@@ -25,6 +25,7 @@ export default function RoadNetworkMap({
   primaryPath = [],
   secondaryPath = [],
   showBaseNetwork = false,
+  showPotentialRoads = false,
   animationDelay = 400,
 }) {
   const [zoom, setZoom] = useState(1);
@@ -39,7 +40,8 @@ export default function RoadNetworkMap({
   const allNodesData = useMemo(() => [...neighborhoods, ...facilities], []);
 
   const allEdges = useMemo(() => {
-    return existingRoads.map((road, index) => {
+    const roads = showPotentialRoads ? [...existingRoads, ...potentialNewRoads] : existingRoads;
+    return roads.map((road, index) => {
       const fromNode = allNodesData.find(n => n.id === road.from);
       const toNode = allNodesData.find(n => n.id === road.to);
       if (!fromNode || !toNode) return null;
@@ -62,7 +64,7 @@ export default function RoadNetworkMap({
         distance_km: road.distance_km,
       };
     }).filter(Boolean);
-  }, [allNodesData]);
+  }, [allNodesData, showPotentialRoads]);
 
   const primaryHighlightedIds = useMemo(() =>
     new Set(highlightedRoadIds.map(id => String(id).trim()).filter(Boolean)),

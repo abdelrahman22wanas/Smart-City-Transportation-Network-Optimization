@@ -59,6 +59,7 @@ export default function MSTDesigner({ mstResult, onRunMst }) {
             highlightedRoadIds={highlightedRoadIds}
             highlightedNodeIds={highlightedNodeIds}
             showBaseNetwork={true}
+            showPotentialRoads={includeNew}
           />
         </div>
         <div className="insight-panel">
