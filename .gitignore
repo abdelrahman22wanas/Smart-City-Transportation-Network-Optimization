@@ -19,6 +19,7 @@ env/
 build/
 dist/
 .pip-cache/
+*.agents/
 
 # Backend build artifacts
 backend/**/__pycache__/
@@ -92,3 +93,8 @@ temp/
 # Generated project docs
 TECHNICAL_REPORT_OUTLINE.md
 LINKEDIN_POST.md
+opencode.md
+IMPLEMENTATION_COMPLETE.md
+PRESENTATION.md
+PROJECT_GUIDE.md
+PROJECT_REPORT.md
