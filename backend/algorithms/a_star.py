@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import heapq
 from functools import lru_cache
+from itertools import count
 from math import sqrt
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -70,11 +71,12 @@ def _a_star_cached(source: NodeId, target: NodeId) -> Tuple[float, Tuple[NodeId,
 
     g_score[source] = 0.0
     f_score[source] = _heuristic(source, target)
-    heap: List[Tuple[float, float, NodeId]] = [(f_score[source], 0.0, source)]
+    heap_counter = count()
+    heap: List[Tuple[float, int, float, NodeId]] = [(f_score[source], next(heap_counter), 0.0, source)]
     closed: set[NodeId] = set()
 
     while heap:
-        _, current_g, current_node = heapq.heappop(heap)
+        _, _, current_g, current_node = heapq.heappop(heap)
         if current_node in closed:
             continue
         closed.add(current_node)
@@ -88,7 +90,7 @@ def _a_star_cached(source: NodeId, target: NodeId) -> Tuple[float, Tuple[NodeId,
                 g_score[neighbor] = tentative_g
                 f_score[neighbor] = tentative_g + _heuristic(neighbor, target)
                 previous[neighbor] = current_node
-                heapq.heappush(heap, (f_score[neighbor], tentative_g, neighbor))
+                heapq.heappush(heap, (f_score[neighbor], next(heap_counter), tentative_g, neighbor))
 
     path = _reconstruct_path(previous, source, target)
     if path:

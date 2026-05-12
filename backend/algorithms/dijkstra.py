@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import heapq
 from functools import lru_cache
+from itertools import count
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from backend.data.cairo_data import EXISTING_ROADS, NODES, NodeId, normalize_road_id
@@ -58,11 +59,12 @@ def _dijkstra_cached(source: NodeId, target: NodeId) -> Tuple[float, Tuple[NodeI
     edge_trace: List[Tuple[str, NodeId, NodeId, float]] = []
 
     distances[source] = 0.0
-    heap: List[Tuple[float, NodeId]] = [(0.0, source)]
+    heap_counter = count()
+    heap: List[Tuple[float, int, NodeId]] = [(0.0, next(heap_counter), source)]
     seen: set[NodeId] = set()
 
     while heap:
-        current_distance, current_node = heapq.heappop(heap)
+        current_distance, _, current_node = heapq.heappop(heap)
         if current_node in seen:
             continue
         seen.add(current_node)
@@ -75,7 +77,7 @@ def _dijkstra_cached(source: NodeId, target: NodeId) -> Tuple[float, Tuple[NodeI
             if candidate_distance < distances[neighbor]:
                 distances[neighbor] = candidate_distance
                 previous[neighbor] = current_node
-                heapq.heappush(heap, (candidate_distance, neighbor))
+                heapq.heappush(heap, (candidate_distance, next(heap_counter), neighbor))
 
     path = _reconstruct_path(previous, source, target)
     if path:
