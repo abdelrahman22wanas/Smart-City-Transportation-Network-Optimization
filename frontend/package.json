@@ -21,6 +21,7 @@
     "d3-zoom": "^3.0.0",
     "leaflet": "^1.9.4",
     "postprocessing": "^6.39.1",
+    "puppeteer": "^24.43.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-leaflet": "^5.0.0",

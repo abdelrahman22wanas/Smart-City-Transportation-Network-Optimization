@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { normalizeRoadId } from '../data/cairoData';
 import RoadNetworkMap from './RoadNetworkMap';
 
@@ -47,9 +47,28 @@ export default function PublicTransit({ busResult, maintenanceResult, onRunBus, 
     return [...nodes];
   }, [maintenanceResult]);
 
+  // Auto-switch view when results arrive for better UX
+  useEffect(() => {
+    if (busResult?.result) setActiveView('bus');
+  }, [busResult]);
+
+  useEffect(() => {
+    if (maintenanceResult?.result) setActiveView('maintenance');
+  }, [maintenanceResult]);
+
   const highlightedRoadIds = activeView === 'bus' ? busRouteEdges : maintenanceEdges;
   const highlightedNodeIds = activeView === 'bus' ? busRouteNodes : maintenanceNodes;
   const showBaseNetwork = true;
+
+  const handleRunBus = () => {
+    console.log('[PublicTransit] Solve Bus Scheduling clicked', { busCount });
+    onRunBus?.(busCount);
+  };
+
+  const handleRunMaintenance = () => {
+    console.log('[PublicTransit] Solve Maintenance clicked', { budget });
+    onRunMaintenance?.(budget);
+  };
 
   return (
     <div className="tab-shell">
@@ -63,14 +82,14 @@ export default function PublicTransit({ busResult, maintenanceResult, onRunBus, 
             <span>Total Buses</span>
             <input type="number" value={busCount} onChange={(event) => setBusCount(Number(event.target.value))} />
           </label>
-          <button type="button" className="primary-button" onClick={() => onRunBus?.(busCount)}>
+          <button type="button" className="primary-button" onClick={handleRunBus}>
             Solve Bus Scheduling
           </button>
           <label className="control-chip">
             <span>Maintenance Budget</span>
             <input type="number" value={budget} onChange={(event) => setBudget(Number(event.target.value))} />
           </label>
-          <button type="button" className="primary-button" onClick={() => onRunMaintenance?.(budget)}>
+          <button type="button" className="primary-button" onClick={handleRunMaintenance}>
             Solve Maintenance
           </button>
         </div>
