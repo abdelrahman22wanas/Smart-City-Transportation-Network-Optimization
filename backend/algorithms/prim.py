@@ -12,6 +12,7 @@ Space complexity: O(V + E) for adjacency storage, heap entries, and output.
 from __future__ import annotations
 
 import heapq
+from itertools import count
 from typing import Any, Dict, List, Set, Tuple, Union
 
 from backend.data.cairo_data import (
@@ -109,7 +110,8 @@ def prim_mst(include_new: bool = True, start_node: NodeId | None = None) -> Dict
     visited_order: List[NodeId] = []
     total_cost = 0.0
 
-    heap: List[Tuple[float, NodeId, NodeId, Dict[str, Any], bool]] = []
+    heap_counter = count()
+    heap: List[Tuple[float, int, NodeId, NodeId, Dict[str, Any], bool]] = []
 
     def push_frontier(node_id: NodeId) -> None:
         visited.add(node_id)
@@ -117,12 +119,16 @@ def prim_mst(include_new: bool = True, start_node: NodeId | None = None) -> Dict
         for edge in adjacency[node_id]:
             _, edge_source, edge_target, _, _ = edge
             if edge_target not in visited:
-                heapq.heappush(heap, edge)
+                weight, _, _, road_data, is_new = edge
+                heapq.heappush(
+                    heap,
+                    (weight, next(heap_counter), edge_source, edge_target, road_data, is_new),
+                )
 
     push_frontier(start_node)
 
     while heap and len(mst_edges) < len(nodes) - 1:
-        weight, edge_source, edge_target, road_data, is_new = heapq.heappop(heap)
+        weight, _, edge_source, edge_target, road_data, is_new = heapq.heappop(heap)
         if edge_target in visited:
             continue
 

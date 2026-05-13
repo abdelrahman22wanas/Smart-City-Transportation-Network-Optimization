@@ -57,6 +57,7 @@ export default function MSTDesigner({ mstResult, onRunMst }) {
         <div className="map-panel">
           <RoadNetworkMap 
             highlightedRoadIds={highlightedRoadIds}
+            highlightedEdges={mstResult?.result?.mst_edges || []}
             highlightedNodeIds={highlightedNodeIds}
             showBaseNetwork={true}
             showPotentialRoads={includeNew}

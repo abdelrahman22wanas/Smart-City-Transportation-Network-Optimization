@@ -21,6 +21,7 @@ function getNodeType(node) {
 
 export default function RoadNetworkMap({
   highlightedRoadIds = [],
+  highlightedEdges = [],
   highlightedNodeIds = [],
   primaryPath = [],
   secondaryPath = [],
@@ -38,6 +39,10 @@ export default function RoadNetworkMap({
   const animationRef = useRef(null);
 
   const allNodesData = useMemo(() => [...neighborhoods, ...facilities], []);
+  const nodeById = useMemo(
+    () => new Map(allNodesData.map((node) => [node.id, node])),
+    [allNodesData],
+  );
 
   const allEdges = useMemo(() => {
     const roads = showPotentialRoads ? [...existingRoads, ...potentialNewRoads] : existingRoads;
@@ -71,6 +76,23 @@ export default function RoadNetworkMap({
     [highlightedRoadIds]
   );
 
+  const highlightedEdgeGeometry = useMemo(() => {
+    if (!highlightedEdges.length) return [];
+    return highlightedEdges
+      .map((edge, index) => {
+        const fromNode = nodeById.get(edge.from);
+        const toNode = nodeById.get(edge.to);
+        if (!fromNode || !toNode) return null;
+        return {
+          id: edge.road_id ? String(edge.road_id).trim() : normalizeRoadId(edge.from, edge.to),
+          index,
+          start: projectNode(fromNode),
+          end: projectNode(toNode),
+        };
+      })
+      .filter(Boolean);
+  }, [highlightedEdges, nodeById]);
+
   const secondaryHighlightedIds = useMemo(() =>
     new Set(secondaryPath.map(id => String(id).trim()).filter(Boolean)),
     [secondaryPath]
@@ -88,7 +110,8 @@ export default function RoadNetworkMap({
       cancelAnimationFrame(animationRef.current);
     }
 
-    if (highlightedRoadIds.length === 0 || sortedHighlightedEdges.length === 0) {
+    const hasHighlightedRoads = highlightedRoadIds.length > 0 || highlightedEdgeGeometry.length > 0;
+    if (!hasHighlightedRoads || (sortedHighlightedEdges.length === 0 && highlightedEdgeGeometry.length === 0)) {
       setIsAnimating(false);
       setAnimationProgress(1);
       return;
@@ -121,7 +144,7 @@ export default function RoadNetworkMap({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [highlightedRoadIds, sortedHighlightedEdges.length]);
+  }, [highlightedRoadIds, highlightedEdgeGeometry.length, sortedHighlightedEdges.length]);
 
   const handleZoomIn = useCallback(() => setZoom(z => Math.min(z + 0.3, 3)), []);
   const handleZoomOut = useCallback(() => setZoom(z => Math.max(z - 0.3, 0.5)), []);
@@ -240,9 +263,9 @@ export default function RoadNetworkMap({
           </button>
         </div>
         <div className="toolbar-info">
-          {highlightedRoadIds.length > 0 ? (
+          {highlightedRoadIds.length > 0 || highlightedEdgeGeometry.length > 0 ? (
             <span className="path-count">
-              <span className="count-badge">{highlightedRoadIds.length}</span>
+              <span className="count-badge">{highlightedRoadIds.length || highlightedEdgeGeometry.length}</span>
               edges highlighted
               {isAnimating && <span className="animating-indicator"> • Drawing...</span>}
             </span>
@@ -354,15 +377,31 @@ export default function RoadNetworkMap({
 
           {/* Highlighted / animated edges */}
           <g className="highlighted-network">
-            {allEdges.map((edge) => {
-              if (primaryHighlightedIds.has(edge.id)) {
-                return renderEdgeWithAnimation(edge, '#00FF88', true);
-              }
-              if (secondaryHighlightedIds.has(edge.id)) {
-                return renderEdgeWithAnimation(edge, '#FF00FF', false);
-              }
-              return null;
-            })}
+            {highlightedEdgeGeometry.length > 0
+              ? highlightedEdgeGeometry.map((edge) => (
+                  <g key={`highlight-${edge.id}`}>
+                    <line
+                      x1={edge.start.x}
+                      y1={edge.start.y}
+                      x2={edge.start.x + (edge.end.x - edge.start.x) * animationProgress}
+                      y2={edge.start.y + (edge.end.y - edge.start.y) * animationProgress}
+                      stroke="#00FF88"
+                      strokeWidth={5}
+                      strokeLinecap="round"
+                      opacity={0.92}
+                      filter="url(#primaryPathGlow)"
+                    />
+                  </g>
+                ))
+              : allEdges.map((edge) => {
+                  if (primaryHighlightedIds.has(edge.id)) {
+                    return renderEdgeWithAnimation(edge, '#00FF88', true);
+                  }
+                  if (secondaryHighlightedIds.has(edge.id)) {
+                    return renderEdgeWithAnimation(edge, '#FF00FF', false);
+                  }
+                  return null;
+                })}
           </g>
 
           {/* Nodes */}
