@@ -91,6 +91,7 @@ temp/
 .DS_Store
 
 # Generated project docs
+TODO.md
 TECHNICAL_REPORT_OUTLINE.md
 LINKEDIN_POST.md
 opencode.md
@@ -98,4 +99,6 @@ IMPLEMENTATION_COMPLETE.md
 PRESENTATION.md
 PROJECT_GUIDE.md
 PROJECT_REPORT.md
+PROJECT_*.md
+*REPORT*.md
 .*/agents
