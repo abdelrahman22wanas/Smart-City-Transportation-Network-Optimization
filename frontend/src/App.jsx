@@ -11,6 +11,7 @@ import TrafficSignals from './components/TrafficSignals';
 import MLPrediction from './components/MLPrediction';
 import Infrastructure from './components/Infrastructure';
 import PerformanceDashboard from './components/PerformanceDashboard';
+import HomePage from './components/HomePage';
 import { allNodes, existingRoads, trafficPatterns } from './data/cairoData';
 
 function computeDashboardMetrics() {
@@ -51,7 +52,7 @@ function computeDashboardMetrics() {
 const defaultDashboardMetrics = computeDashboardMetrics();
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('Network Map');
+  const [activeTab, setActiveTab] = useState('Home');
   const [mstResult, setMstResult] = useState(null);
   const [routeResult, setRouteResult] = useState(null);
   const [compareResult, setCompareResult] = useState(null);
@@ -150,6 +151,8 @@ export default function App() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Home':
+        return <HomePage onSelectTab={setActiveTab} />;
       case 'Network Map':
         return <NetworkMap />;
       case 'MST Designer':
@@ -195,6 +198,7 @@ export default function App() {
   };
 
   const isMapTab = activeTab === 'Network Map';
+  const isHomeTab = activeTab === 'Home';
 
   return (
     <>
@@ -214,10 +218,12 @@ export default function App() {
         ))}
       </div>
       <div className="vignette-overlay" aria-hidden="true" />
-      <div className="app-shell">
-        <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
+      <div className={`app-shell${isHomeTab ? ' home-mode' : ''}`}>
+        {!isHomeTab && <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />}
         <main className="content-shell">
-          {isMapTab ? (
+          {isHomeTab ? (
+            renderContent()
+          ) : isMapTab ? (
             <div className="map-fullscreen">
               <NetworkMap />
             </div>
