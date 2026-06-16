@@ -15,7 +15,7 @@ const TABS = [
 export default function Sidebar({ activeTab, onSelectTab }) {
   return (
     <nav className="nav-sidebar">
-      <div className="nav-brand">
+      <div className="nav-brand" onClick={() => onSelectTab('Home')}>
         <div className="nav-logo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />

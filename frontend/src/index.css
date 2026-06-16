@@ -117,6 +117,7 @@ body {
   padding: 24px 20px;
   border-bottom: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-panel) 100%);
+  cursor: pointer;
 }
 
 .nav-logo {
