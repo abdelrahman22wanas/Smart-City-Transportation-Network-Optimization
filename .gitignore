@@ -102,3 +102,4 @@ PROJECT_REPORT.md
 PROJECT_*.md
 *REPORT*.md
 .*/agents
+.vercel

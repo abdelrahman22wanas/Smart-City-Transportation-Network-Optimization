@@ -1,0 +1,18 @@
+app = "cairo-transit-backend"
+primary_region = "ams"
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  max_machines_running = 1
+
+[env]
+  CORS_ORIGINS = "https://smart-city-transportation-network-o.vercel.app"
+  APP_NAME = "Smart City Transportation API"
+  LOG_LEVEL = "INFO"
