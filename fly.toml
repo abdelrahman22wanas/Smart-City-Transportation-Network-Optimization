@@ -1,18 +1,28 @@
-app = "cairo-transit-backend"
-primary_region = "ams"
+# fly.toml app configuration file generated for smart-city-transportation-network-optimization on 2026-06-16T07:01:12Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'smart-city-transportation-network-optimization'
+primary_region = 'ams'
 
 [build]
-  dockerfile = "backend/Dockerfile"
-
-[http_service]
-  internal_port = 8000
-  force_https = true
-  auto_stop_machines = "stop"
-  auto_start_machines = true
-  min_machines_running = 0
-  max_machines_running = 1
+  dockerfile = 'backend/Dockerfile'
 
 [env]
-  CORS_ORIGINS = "https://smart-city-transportation-network-o.vercel.app"
-  APP_NAME = "Smart City Transportation API"
-  LOG_LEVEL = "INFO"
+  APP_NAME = 'Smart City Transportation API'
+  CORS_ORIGINS = 'https://smart-city-transportation-network-o.vercel.app'
+  LOG_LEVEL = 'INFO'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256
